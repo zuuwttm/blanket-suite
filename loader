@@ -104,8 +104,8 @@ end)
 
 -- Game-specific script URLs
 local scripts = {
-    [11641576792] = "https://raw.githubusercontent.com/YOUR_USERNAME/blanket-suite/main/games/demonhunter",
-    [72368345999613] = "https://raw.githubusercontent.com/YOUR_USERNAME/blanket-suite/main/games/ghoulre",
+    [11641576792] = "https://raw.githubusercontent.com/zuuwttm/blanket-suite/main/games/demonhunter",
+    [72368345999613] = "https://raw.githubusercontent.com/zuuwttm/blanket-suite/main/games/ghoulre",
 }
 
 local GameId = game.GameId
