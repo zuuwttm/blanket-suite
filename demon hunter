@@ -1,0 +1,513 @@
+-- BLANKET SUITE - DEMON HUNTER AUTO PARRY
+-- Advanced animation-based auto parry with humanized reactions
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Animation Database
+local AnimationData = {
+    ["15296000877"] = {PlayerFacing = true, DistanceCheck = true, AnimationPlaying = true, Delay = {0, 0.3}, TargetFacing = true},
+    ["121112442231795"] = {PlayerFacing = true, DistanceCheck = true, AnimationPlaying = true, Distance = 12, Delay = {0, 0.3}, TargetFacing = true},
+    ["13216463311"] = {PlayerFacing = true, Delay = {0, 0.3}, DistanceCheck = true, AnimationPlaying = true, TargetFacing = true},
+    ["112252260323557"] = {PlayerFacing = true, DistanceCheck = true, AnimationPlaying = true, Delay = {0, 0.3}, TargetFacing = true},
+    ["105171263568261"] = {DistanceCheck = true, PlayerFacing = true, Dodge = true, AnimationPlaying = true, Distance = 45, Delay = {0, 1.7}, TargetFacing = true},
+    ["13216162112"] = {PlayerFacing = true, DistanceCheck = true, AnimationPlaying = true, Delay = {0, 0.3}, TargetFacing = true},
+    ["102249102365709"] = {PlayerFacing = true, DistanceCheck = true, Distance = 55, AnimationPlaying = true, Delay = {0, 0.2}, TargetFacing = true},
+    ["15333434620"] = {PlayerFacing = true, Delay = {0, 0.5}, Dodge = true, DistanceCheck = true, AnimationPlaying = true, TargetFacing = true},
+    ["125750618439458"] = {PlayerFacing = true, DistanceCheck = true, AnimationPlaying = true, Distance = 21, Delay = {0, 0.32}, TargetFacing = true},
+    ["12934303610"] = {PlayerFacing = true, Delay = {0, 0.62}, DistanceCheck = true, AnimationPlaying = true, TargetFacing = true},
+    ["15333430896"] = {PlayerFacing = true, DistanceCheck = true, Dodge = true, AnimationPlaying = true, Delay = {0, 0.5}, TargetFacing = true},
+    ["80519712247522"] = {PlayerFacing = true, Delay = {0, 0.65}, DistanceCheck = true, Distance = 45, AnimationPlaying = true, TargetFacing = true},
+    ["95437925023122"] = {PlayerFacing = true, DistanceCheck = true, Distance = 12, AnimationPlaying = true, Delay = {0, 0.3}, TargetFacing = true},
+    ["18145543696"] = {PlayerFacing = true, Delay = {0, 0.35}, DistanceCheck = true, AnimationPlaying = true, TargetFacing = true},
+    ["107474630966912"] = {PlayerFacing = true, DistanceCheck = true, AnimationPlaying = true, Distance = 24, Delay = {0, 0.33}, TargetFacing = true},
+    ["103654954641072"] = {PlayerFacing = true, Delay = {0, 0.4}, Distance = 40, AnimationPlaying = true, DistanceCheck = true, TargetFacing = true},
+    ["119435325505776"] = {PlayerFacing = true, Delay = {0.067, 0.367}, Distance = 20, AnimationPlaying = true, DistanceCheck = true, TargetFacing = true},
+    ["13216485530"] = {PlayerFacing = true, Delay = {0, 0.3}, DistanceCheck = true, AnimationPlaying = true, TargetFacing = true},
+    ["81683320159145"] = {PlayerFacing = true, DistanceCheck = true, AnimationPlaying = true, Distance = 21, Delay = {0, 0.33}, TargetFacing = true},
+    ["104758213987397"] = {PlayerFacing = true, Delay = {0, 0.3}, DistanceCheck = true, AnimationPlaying = true, Distance = 12, TargetFacing = true},
+    ["12934568935"] = {PlayerFacing = true, Dodge = true, Delay = {0, 0.62}, AnimationPlaying = true, DistanceCheck = true, TargetFacing = true},
+    ["84367978678179"] = {PlayerFacing = true, DistanceCheck = true, AnimationPlaying = true, Delay = {0, 0.3}, TargetFacing = true},
+    ["13216477228"] = {PlayerFacing = true, DistanceCheck = true, AnimationPlaying = true, Delay = {0, 0.3}, TargetFacing = true},
+    ["87358030160487"] = {PlayerFacing = true, DistanceCheck = true, Distance = 15, AnimationPlaying = true, Delay = {0, 0.33}, TargetFacing = true},
+    ["81652250182073"] = {PlayerFacing = true, Delay = {0, 0.3}, DistanceCheck = true, AnimationPlaying = true, TargetFacing = true},
+    ["18145440207"] = {PlayerFacing = true, DistanceCheck = true, AnimationPlaying = true, Delay = {0, 0.35}, TargetFacing = true},
+    ["15295998918"] = {PlayerFacing = true, DistanceCheck = true, AnimationPlaying = true, Delay = {0, 0.4}, TargetFacing = true},
+    ["117386173978239"] = {PlayerFacing = true, Delay = {0, 0.3}, Distance = 12, AnimationPlaying = true, DistanceCheck = true, TargetFacing = true},
+    ["14782899762"] = {PlayerFacing = true, DistanceCheck = true, AnimationPlaying = true, Distance = 45, Delay = {0, 0.65}, TargetFacing = true},
+    ["136176386551478"] = {PlayerFacing = true, Distance = 15, Delay = {0, 0.82}, AnimationPlaying = true, DistanceCheck = true, TargetFacing = true},
+    ["79483546058434"] = {PlayerFacing = true, Delay = {0, 0.32}, DistanceCheck = true, AnimationPlaying = true, Distance = 21, TargetFacing = true},
+    ["122649715590125"] = {PlayerFacing = true, Delay = {0, 0.25}, DistanceCheck = true, AnimationPlaying = true, TargetFacing = true},
+    ["98652975291197"] = {PlayerFacing = true, Delay = {0, 0.69}, Distance = 19, AnimationPlaying = true, DistanceCheck = true, TargetFacing = true},
+    ["15333438925"] = {PlayerFacing = true, Dodge = true, Delay = {0, 0.5}, AnimationPlaying = true, DistanceCheck = true, TargetFacing = true},
+    ["18145819201"] = {PlayerFacing = true, Delay = {0, 0.35}, AnimationPlaying = true, DistanceCheck = true, TargetFacing = true},
+    ["15000726119"] = {PlayerFacing = true, Delay = {0, 0}, DistanceCheck = true, AnimationPlaying = true, TargetFacing = true},
+    ["18145502004"] = {PlayerFacing = true, Delay = {0, 0.35}, AnimationPlaying = true, DistanceCheck = true, TargetFacing = true},
+    ["75577915719732"] = {PlayerFacing = true, Delay = {0, 0.3}, DistanceCheck = true, AnimationPlaying = true, TargetFacing = true},
+    ["100754624306162"] = {PlayerFacing = true, DistanceCheck = true, AnimationPlaying = true, Distance = 30, Delay = {0, 1}, TargetFacing = true},
+    ["114183531618156"] = {PlayerFacing = true, Delay = {0, 0.29}, DistanceCheck = true, AnimationPlaying = true, TargetFacing = true},
+    ["17507650124"] = {PlayerFacing = true, Delay = {0, 0.66}, AnimationPlaying = true, Distance = 21, DistanceCheck = true, TargetFacing = true},
+    ["110397768972770"] = {PlayerFacing = true, Delay = {0, 0.4}, DistanceCheck = true, AnimationPlaying = true, Distance = 40, TargetFacing = true},
+    ["86449233982093"] = {PlayerFacing = false, Delay = {0, 0.2}, Dodge = true, AnimationPlaying = true, Distance = 35, DistanceCheck = true, TargetFacing = true},
+    ["15267503955"] = {PlayerFacing = true, Delay = {0, 0.5}, AnimationPlaying = true, DistanceCheck = true, TargetFacing = true},
+    ["138865505728683"] = {PlayerFacing = true, Delay = {0, 0.32}, Distance = 21, AnimationPlaying = true, DistanceCheck = true, TargetFacing = true},
+    ["93455698687333"] = {PlayerFacing = true, Delay = {0.067, 0.367}, DistanceCheck = true, AnimationPlaying = true, Distance = 20, TargetFacing = true},
+    ["73709594767748"] = {PlayerFacing = true, Delay = {0, 0.4}, AnimationPlaying = true, DistanceCheck = true, TargetFacing = true},
+    ["111225642091545"] = {PlayerFacing = true, DistanceCheck = true, Distance = 40, AnimationPlaying = true, Delay = {0, 0.4}, TargetFacing = true},
+    ["138330514059611"] = {PlayerFacing = true, Delay = {0, 0.4}, AnimationPlaying = true, Distance = 40, DistanceCheck = true, TargetFacing = true},
+    ["17507669807"] = {PlayerFacing = true, Delay = {0, 0.66}, DistanceCheck = true, Distance = 21, AnimationPlaying = true, TargetFacing = true},
+    ["12934301557"] = {PlayerFacing = true, DistanceCheck = true, AnimationPlaying = true, Delay = {0, 0.62}, TargetFacing = true},
+    ["136854260249866"] = {PlayerFacing = true, Delay = {0, 1.2}, Distance = 50, AnimationPlaying = true, DistanceCheck = true, TargetFacing = true},
+    ["111174092834875"] = {PlayerFacing = true, DistanceCheck = true, Distance = 35, AnimationPlaying = true, Delay = {0, 0.45}, TargetFacing = true},
+    ["108475878417458"] = {PlayerFacing = true, DistanceCheck = true, Distance = 21, AnimationPlaying = true, Delay = {0, 0.32}, TargetFacing = true},
+    ["121273306982111"] = {PlayerFacing = true, DistanceCheck = true, AnimationPlaying = true, Delay = {0, 0.3}, TargetFacing = true},
+    ["14782341295"] = {PlayerFacing = true, Delay = {0, 0.27}, AnimationPlaying = true, Distance = 23, DistanceCheck = true, TargetFacing = true},
+    ["15000019812"] = {PlayerFacing = true, DistanceCheck = true, AnimationPlaying = true, Distance = 50, Delay = {0, 0.5}, TargetFacing = true},
+    ["93030654452005"] = {PlayerFacing = true, DistanceCheck = true, AnimationPlaying = true, Distance = 20, Delay = {0.067, 0.367}, TargetFacing = true},
+    ["70914539649349"] = {PlayerFacing = true, Delay = {0, 0.32}, DistanceCheck = true, Distance = 21, AnimationPlaying = true, TargetFacing = true},
+    ["87104238210977"] = {PlayerFacing = true, DistanceCheck = true, AnimationPlaying = true, Delay = {0, 0.29}, TargetFacing = true},
+    ["18145083142"] = {PlayerFacing = true, DistanceCheck = true, AnimationPlaying = true, Delay = {0, 0.35}, TargetFacing = true},
+    ["17559715309"] = {PlayerFacing = true, Delay = {0, 0.7}, AnimationPlaying = true, DistanceCheck = true, TargetFacing = true},
+    ["13216225926"] = {PlayerFacing = true, DistanceCheck = true, AnimationPlaying = true, Delay = {0, 0.25}, TargetFacing = true},
+    ["85824410873678"] = {PlayerFacing = true, Delay = {0, 0.3}, AnimationPlaying = true, DistanceCheck = true, TargetFacing = true},
+    ["133436879655959"] = {PlayerFacing = true, Delay = {0, 0.33}, Distance = 21, AnimationPlaying = true, DistanceCheck = true, TargetFacing = true},
+    ["15333436372"] = {PlayerFacing = true, Dodge = true, Delay = {0, 0.45}, AnimationPlaying = true, DistanceCheck = true, TargetFacing = true},
+    ["12471770267"] = {PlayerFacing = true, DistanceCheck = true, Dodge = true, AnimationPlaying = true, Delay = {0, 0.6}, TargetFacing = true},
+    ["17559719614"] = {PlayerFacing = true, Delay = {0.102, 0.852}, Dodge = true, DistanceCheck = true, AnimationPlaying = true, TargetFacing = true},
+    ["17559717768"] = {PlayerFacing = true, DistanceCheck = true, AnimationPlaying = true, Delay = {0, 0.8}, TargetFacing = true},
+    ["114889596682040"] = {PlayerFacing = true, Delay = {0, 0.3}, DistanceCheck = true, AnimationPlaying = true, TargetFacing = true},
+    ["85492170137345"] = {PlayerFacing = true, DistanceCheck = true, AnimationPlaying = true, Distance = 24, Delay = {0, 0.32}, TargetFacing = true},
+    ["12634477927"] = {PlayerFacing = true, DistanceCheck = true, Dodge = true, AnimationPlaying = true, Delay = {0, 0.3}, TargetFacing = true},
+    ["11742363265"] = {PlayerFacing = false, DistanceCheck = true, Distance = 10, AnimationPlaying = true, Delay = {0.085, 0.285}, TargetFacing = false},
+    ["12378289241"] = {PlayerFacing = true, Delay = {0, 0.6}, AnimationPlaying = true, DistanceCheck = true, TargetFacing = true},
+    ["122831258330207"] = {PlayerFacing = true, Delay = {0, 0.62}, DistanceCheck = true, AnimationPlaying = true, Distance = 35, TargetFacing = true},
+}
+
+-- Auto Parry State
+local AutoParry = {
+    Enabled = false,
+    LastParry = 0,
+    ParryCooldown = 0.1,
+    MonitoredPlayers = {},
+    Stats = {
+        Attempts = 0,
+        Successful = 0,
+        Threats = 0
+    }
+}
+
+-- Humanized reaction system
+local HumanReaction = {
+    BaseReactionTime = 0.15, -- Base human reaction time
+    Variance = 0.08, -- Reaction time variance
+    Fatigue = 0, -- Increases over time
+    FatigueRate = 0.001,
+    FatigueDecay = 0.0005,
+    LastReactionTime = 0,
+    MissChance = 0.02 -- 2% chance to miss (human error)
+}
+
+-- Get humanized delay
+local function getHumanizedDelay(baseDelay)
+    local reactionTime = HumanReaction.BaseReactionTime + (math.random() - 0.5) * 2 * HumanReaction.Variance
+    local fatigueFactor = 1 + HumanReaction.Fatigue
+    local finalDelay = baseDelay + (reactionTime * fatigueFactor)
+    
+    -- Add occasional longer delays (distraction simulation)
+    if math.random() < 0.05 then
+        finalDelay = finalDelay + math.random() * 0.2
+    end
+    
+    HumanReaction.Fatigue = math.min(HumanReaction.Fatigue + HumanReaction.FatigueRate, 0.3)
+    
+    return finalDelay
+end
+
+-- Decay fatigue over time
+task.spawn(function()
+    while task.wait(1) do
+        HumanReaction.Fatigue = math.max(0, HumanReaction.Fatigue - HumanReaction.FatigueDecay)
+    end
+end)
+
+-- Distance calculation
+local function getDistance(pos1, pos2)
+    return (pos1 - pos2).Magnitude
+end
+
+-- Check facing
+local function isTargetFacingPlayer(targetChar, playerChar)
+    if not targetChar or not playerChar then return false end
+    
+    local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+    local playerHRP = playerChar:FindFirstChild("HumanoidRootPart")
+    
+    if not targetHRP or not playerHRP then return false end
+    
+    local directionToPlayer = (playerHRP.Position - targetHRP.Position).Unit
+    local targetLookVector = targetHRP.CFrame.LookVector
+    
+    return directionToPlayer:Dot(targetLookVector) > 0.5
+end
+
+local function isPlayerFacingTarget(playerChar, targetChar)
+    if not playerChar or not targetChar then return false end
+    
+    local playerHRP = playerChar:FindFirstChild("HumanoidRootPart")
+    local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+    
+    if not playerHRP or not targetHRP then return false end
+    
+    local directionToTarget = (targetHRP.Position - playerHRP.Position).Unit
+    local playerLookVector = playerHRP.CFrame.LookVector
+    
+    return directionToTarget:Dot(playerLookVector) > 0.5
+end
+
+-- Execute parry with multiple methods
+local function executeParry()
+    if not AutoParry.Enabled then return false end
+    
+    local currentTime = tick()
+    if currentTime - AutoParry.LastParry < AutoParry.ParryCooldown then
+        return false
+    end
+    
+    -- Human error simulation
+    if math.random() < HumanReaction.MissChance then
+        return false
+    end
+    
+    AutoParry.LastParry = currentTime
+    AutoParry.Stats.Attempts = AutoParry.Stats.Attempts + 1
+    
+    local parrySuccess = false
+    
+    -- Method 1: Try to find and use RemoteEvent
+    pcall(function()
+        local remotes = game:GetService("ReplicatedStorage"):GetDescendants()
+        for _, remote in ipairs(remotes) do
+            if remote:IsA("RemoteEvent") and (
+                string.find(remote.Name:lower(), "parry") or 
+                string.find(remote.Name:lower(), "block") or
+                string.find(remote.Name:lower(), "guard")
+            ) then
+                remote:FireServer()
+                parrySuccess = true
+                break
+            end
+        end
+    end)
+    
+    -- Method 2: Virtual key press (F key)
+    if not parrySuccess then
+        pcall(function()
+            local vim = game:GetService("VirtualInputManager")
+            vim:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+            task.wait(0.05)
+            vim:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+            parrySuccess = true
+        end)
+    end
+    
+    -- Method 3: Mouse button
+    if not parrySuccess then
+        pcall(function()
+            local vim = game:GetService("VirtualInputManager")
+            vim:SendMouseButtonEvent(0, 0, 1, true, game, 0)
+            task.wait(0.05)
+            vim:SendMouseButtonEvent(0, 0, 1, false, game, 0)
+            parrySuccess = true
+        end)
+    end
+    
+    if parrySuccess then
+        AutoParry.Stats.Successful = AutoParry.Stats.Successful + 1
+    end
+    
+    return parrySuccess
+end
+
+-- Monitor animation
+local function monitorAnimation(animTrack, player, animId)
+    if not AutoParry.Enabled then return end
+    
+    AutoParry.Stats.Threats = AutoParry.Stats.Threats + 1
+    
+    local animData = AnimationData[animId]
+    local playerChar = LocalPlayer.Character
+    local targetChar = player.Character
+    
+    if not playerChar or not targetChar then return end
+    
+    local playerHRP = playerChar:FindFirstChild("HumanoidRootPart")
+    local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+    
+    if not playerHRP or not targetHRP then return end
+    
+    -- Use animation data if available, otherwise use generic parry
+    if animData then
+        -- Distance check
+        if animData.DistanceCheck then
+            local distance = getDistance(playerHRP.Position, targetHRP.Position)
+            local maxDistance = animData.Distance or 30
+            if distance > maxDistance then return end
+        end
+        
+        -- Facing checks
+        if animData.PlayerFacing and not isPlayerFacingTarget(playerChar, targetChar) then
+            return
+        end
+        
+        if animData.TargetFacing and not isTargetFacingPlayer(targetChar, playerChar) then
+            return
+        end
+        
+        -- Execute parry with humanized delay
+        task.spawn(function()
+            local baseDelay = animData.Delay[1] + (animData.Delay[2] - animData.Delay[1]) / 2
+            local delay = getHumanizedDelay(baseDelay)
+            
+            task.wait(delay)
+            
+            if animTrack.IsPlaying and animData.AnimationPlaying then
+                executeParry()
+            end
+        end)
+    else
+        -- Generic fallback for unknown animations
+        task.spawn(function()
+            local distance = getDistance(playerHRP.Position, targetHRP.Position)
+            if distance < 35 then
+                local delay = getHumanizedDelay(0.3)
+                task.wait(delay)
+                if animTrack.IsPlaying then
+                    executeParry()
+                end
+            end
+        end)
+    end
+end
+
+-- Monitor player
+local function monitorPlayer(player)
+    if player == LocalPlayer then return end
+    if AutoParry.MonitoredPlayers[player] then return end
+    
+    AutoParry.MonitoredPlayers[player] = true
+    
+    local function setupCharacter(character)
+        local humanoid = character:WaitForChild("Humanoid", 5)
+        if not humanoid then return end
+        
+        -- Monitor AnimationPlayed event
+        humanoid.AnimationPlayed:Connect(function(animTrack)
+            if not AutoParry.Enabled then return end
+            
+            local animId = animTrack.Animation.AnimationId
+            local numericId = string.match(animId, "%d+")
+            
+            if numericId then
+                monitorAnimation(animTrack, player, numericId)
+            end
+        end)
+    end
+    
+    if player.Character then
+        setupCharacter(player.Character)
+    end
+    
+    player.CharacterAdded:Connect(setupCharacter)
+end
+
+-- Initialize monitoring
+for _, player in ipairs(Players:GetPlayers()) do
+    task.spawn(function()
+        monitorPlayer(player)
+    end)
+end
+
+Players.PlayerAdded:Connect(function(player)
+    task.spawn(function()
+        monitorPlayer(player)
+    end)
+end)
+
+-- GUI Creation
+getgenv().BlanketLoader.set_status("Creating GUI...")
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "BlanketGUI"
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local main = Instance.new("Frame")
+main.Name = "Main"
+main.Size = UDim2.new(0, 250, 0, 150)
+main.Position = UDim2.new(0.5, -125, 0.1, 0)
+main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+main.BorderSizePixel = 0
+main.Parent = gui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = main
+
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, 0, 0, 35)
+title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+title.BorderSizePixel = 0
+title.Text = "Blanket"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 18
+title.Font = Enum.Font.GothamBold
+title.Parent = main
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 10)
+titleCorner.Parent = title
+
+local autoParryLabel = Instance.new("TextLabel")
+autoParryLabel.Name = "AutoParryLabel"
+autoParryLabel.Size = UDim2.new(0, 120, 0, 30)
+autoParryLabel.Position = UDim2.new(0, 15, 0, 50)
+autoParryLabel.BackgroundTransparency = 1
+autoParryLabel.Text = "Auto Parry:"
+autoParryLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+autoParryLabel.TextSize = 14
+autoParryLabel.Font = Enum.Font.Gotham
+autoParryLabel.TextXAlignment = Enum.TextXAlignment.Left
+autoParryLabel.Parent = main
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Name = "ToggleButton"
+toggleButton.Size = UDim2.new(0, 80, 0, 30)
+toggleButton.Position = UDim2.new(0, 150, 0, 50)
+toggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+toggleButton.BorderSizePixel = 0
+toggleButton.Text = "OFF"
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.TextSize = 14
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.Parent = main
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(0, 6)
+toggleCorner.Parent = toggleButton
+
+local statsLabel = Instance.new("TextLabel")
+statsLabel.Name = "StatsLabel"
+statsLabel.Size = UDim2.new(1, -30, 0, 50)
+statsLabel.Position = UDim2.new(0, 15, 0, 90)
+statsLabel.BackgroundTransparency = 1
+statsLabel.Text = "Threats: 0 | Success: 0%"
+statsLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+statsLabel.TextSize = 12
+statsLabel.Font = Enum.Font.Gotham
+statsLabel.TextXAlignment = Enum.TextXAlignment.Left
+statsLabel.TextYAlignment = Enum.TextYAlignment.Top
+statsLabel.Parent = main
+
+-- Make GUI draggable
+local dragging, dragInput, dragStart, startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = main.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+title.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+-- Toggle button functionality
+toggleButton.MouseButton1Click:Connect(function()
+    AutoParry.Enabled = not AutoParry.Enabled
+    
+    if AutoParry.Enabled then
+        toggleButton.Text = "ON"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+    else
+        toggleButton.Text = "OFF"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    end
+end)
+
+-- Toggle keybind (K)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.K then
+        AutoParry.Enabled = not AutoParry.Enabled
+        
+        if AutoParry.Enabled then
+            toggleButton.Text = "ON"
+            toggleButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+        else
+            toggleButton.Text = "OFF"
+            toggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        end
+    elseif input.KeyCode == Enum.KeyCode.LeftControl or input.KeyCode == Enum.KeyCode.RightControl then
+        gui.Enabled = not gui.Enabled
+    end
+end)
+
+-- Update stats
+task.spawn(function()
+    while task.wait(1) do
+        local successRate = 0
+        if AutoParry.Stats.Attempts > 0 then
+            successRate = math.floor((AutoParry.Stats.Successful / AutoParry.Stats.Attempts) * 100)
+        end
+        
+        statsLabel.Text = string.format("Threats: %d | Success: %d%%\nAttempts: %d | Fatigue: %.1f%%", 
+            AutoParry.Stats.Threats,
+            successRate,
+            AutoParry.Stats.Attempts,
+            HumanReaction.Fatigue * 100
+        )
+    end
+end)
+
+-- Protect and parent GUI
+local ProtectGui = protectgui or (syn and syn.protect_gui) or function() end
+gui.Parent = game:GetService("CoreGui")
+ProtectGui(gui)
+
+-- Cleanup loader
+getgenv().BlanketLoader.set_status("Auto Parry Loaded!")
+task.wait(2)
+getgenv().BlanketLoader.destroy()
+
+warn("===========================================")
+warn("BLANKET SUITE - DEMON HUNTER")
+warn("Auto Parry: Press K to toggle")
+warn("GUI: Press CTRL to hide/show")
+warn("Animations Loaded: " .. tostring(#AnimationData))
+warn("===========================================")
