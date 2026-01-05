@@ -1,0 +1,140 @@
+-- BLANKET SUITE MAIN LOADER
+-- Usage: loadstring(game:HttpGet("https://raw.githubusercontent.com/YOUR_USERNAME/blanket-suite/main/loader"))()
+
+local loader = Instance.new("ScreenGui")
+loader.Name = "Loader"
+loader.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local holder = Instance.new("Frame")
+holder.Name = "Holder"
+holder.AnchorPoint = Vector2.new(0.5, 0.5)
+holder.AutomaticSize = Enum.AutomaticSize.XY
+holder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+holder.BackgroundTransparency = 1
+holder.BorderColor3 = Color3.fromRGB(0, 0, 0)
+holder.BorderSizePixel = 0
+holder.Position = UDim2.fromScale(0.5, 0.5)
+
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.FontFace = Font.new(
+    "rbxassetid://12187365364",
+    Enum.FontWeight.Heavy,
+    Enum.FontStyle.Normal
+)
+title.Text = "BLANKET SUITE"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 100
+title.TextTransparency = 0.5
+title.TextWrapped = true
+title.AutomaticSize = Enum.AutomaticSize.XY
+title.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+title.BackgroundTransparency = 1
+title.BorderColor3 = Color3.fromRGB(0, 0, 0)
+title.BorderSizePixel = 0
+title.Size = UDim2.fromOffset(200, 50)
+title.Parent = holder
+
+local uIListLayout = Instance.new("UIListLayout")
+uIListLayout.Name = "UIListLayout"
+uIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+uIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+uIListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+uIListLayout.Parent = holder
+
+local status = Instance.new("TextLabel")
+status.Name = "Status"
+status.FontFace = Font.new(
+    "rbxassetid://12187365364",
+    Enum.FontWeight.SemiBold,
+    Enum.FontStyle.Normal
+)
+status.Text = "loading..."
+status.TextColor3 = Color3.fromRGB(255, 255, 255)
+status.TextSize = 48
+status.TextTransparency = 0.5
+status.TextWrapped = true
+status.AutomaticSize = Enum.AutomaticSize.XY
+status.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+status.BackgroundTransparency = 1
+title.BorderColor3 = Color3.fromRGB(0, 0, 0)
+title.BorderSizePixel = 0
+status.Size = UDim2.fromOffset(200, 50)
+status.Parent = holder
+
+holder.Parent = loader
+
+local uIAspectRatioConstraint = Instance.new("UIAspectRatioConstraint")
+uIAspectRatioConstraint.Name = "UIAspectRatioConstraint"
+uIAspectRatioConstraint.AspectRatio = 3.71
+uIAspectRatioConstraint.Parent = loader
+
+local BlanketLoader = {}
+local last_status_update_time = tick()
+
+function BlanketLoader.set_status(text)
+    local current_time = tick()
+    local time_diff_ms = math.floor((current_time - last_status_update_time) * 1000)
+    last_status_update_time = current_time
+    status.Text = text
+    warn('Loader: ' .. text .. ' (' .. time_diff_ms .. 'ms)')
+end
+
+function BlanketLoader.destroy()
+    if loader and loader.Parent then
+        loader:Destroy()
+    end
+    getgenv().BlanketLoader = nil
+end
+
+getgenv().BlanketLoader = BlanketLoader
+
+local ProtectGui = protectgui or (syn and syn.protect_gui) or function() end
+
+loader.Archivable = false
+loader.Parent = game:GetService("CoreGui")
+
+ProtectGui(loader)
+
+task.delay(30, function()
+    pcall(function()
+        BlanketLoader.destroy()
+    end)
+end)
+
+-- Game-specific script URLs
+local scripts = {
+    [11641576792] = "https://raw.githubusercontent.com/YOUR_USERNAME/blanket-suite/main/games/demonhunter",
+    [72368345999613] = "https://raw.githubusercontent.com/YOUR_USERNAME/blanket-suite/main/games/ghoulre",
+}
+
+local GameId = game.GameId
+
+BlanketLoader.set_status("Detecting game...")
+
+if scripts[GameId] then
+    BlanketLoader.set_status("Loading script...")
+    local success, script = pcall(function()
+        return game:HttpGet(scripts[GameId])
+    end)
+    
+    if success and script then
+        BlanketLoader.set_status("Executing...")
+        local loadSuccess, err = pcall(function()
+            loadstring(script)()
+        end)
+        
+        if not loadSuccess then
+            BlanketLoader.set_status("Error: " .. tostring(err))
+            warn("Blanket Suite Error: " .. tostring(err))
+        end
+    else
+        BlanketLoader.set_status("Failed to fetch script")
+        warn("Blanket Suite: Failed to load game script")
+    end
+else
+    BlanketLoader.set_status("Game not supported")
+    warn("Blanket Suite: Game ID " .. tostring(GameId) .. " not supported")
+    task.wait(3)
+    BlanketLoader.destroy()
+end
