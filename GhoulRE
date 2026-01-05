@@ -1,0 +1,397 @@
+-- BLANKET SUITE - GHOUL RE AUTO PARRY
+-- Advanced auto parry with humanized reactions and animation detection fallback
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Auto Parry State
+local AutoParry = {
+    Enabled = false,
+    LastParry = 0,
+    ParryCooldown = 0.1,
+    MonitoredPlayers = {},
+    Stats = {
+        Attempts = 0,
+        Successful = 0,
+        Threats = 0
+    }
+}
+
+-- Humanized reaction system
+local HumanReaction = {
+    BaseReactionTime = 0.15,
+    Variance = 0.08,
+    Fatigue = 0,
+    FatigueRate = 0.001,
+    FatigueDecay = 0.0005,
+    LastReactionTime = 0,
+    MissChance = 0.02
+}
+
+-- Get humanized delay
+local function getHumanizedDelay(baseDelay)
+    local reactionTime = HumanReaction.BaseReactionTime + (math.random() - 0.5) * 2 * HumanReaction.Variance
+    local fatigueFactor = 1 + HumanReaction.Fatigue
+    local finalDelay = baseDelay + (reactionTime * fatigueFactor)
+    
+    if math.random() < 0.05 then
+        finalDelay = finalDelay + math.random() * 0.2
+    end
+    
+    HumanReaction.Fatigue = math.min(HumanReaction.Fatigue + HumanReaction.FatigueRate, 0.3)
+    
+    return finalDelay
+end
+
+-- Decay fatigue
+task.spawn(function()
+    while task.wait(1) do
+        HumanReaction.Fatigue = math.max(0, HumanReaction.Fatigue - HumanReaction.FatigueDecay)
+    end
+end)
+
+-- Distance calculation
+local function getDistance(pos1, pos2)
+    return (pos1 - pos2).Magnitude
+end
+
+-- Check facing
+local function isTargetFacingPlayer(targetChar, playerChar)
+    if not targetChar or not playerChar then return false end
+    
+    local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+    local playerHRP = playerChar:FindFirstChild("HumanoidRootPart")
+    
+    if not targetHRP or not playerHRP then return false end
+    
+    local directionToPlayer = (playerHRP.Position - targetHRP.Position).Unit
+    local targetLookVector = targetHRP.CFrame.LookVector
+    
+    return directionToPlayer:Dot(targetLookVector) > 0.5
+end
+
+local function isPlayerFacingTarget(playerChar, targetChar)
+    if not playerChar or not targetChar then return false end
+    
+    local playerHRP = playerChar:FindFirstChild("HumanoidRootPart")
+    local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+    
+    if not playerHRP or not targetHRP then return false end
+    
+    local directionToTarget = (targetHRP.Position - playerHRP.Position).Unit
+    local playerLookVector = playerHRP.CFrame.LookVector
+    
+    return directionToTarget:Dot(playerLookVector) > 0.5
+end
+
+-- Execute parry
+local function executeParry()
+    if not AutoParry.Enabled then return false end
+    
+    local currentTime = tick()
+    if currentTime - AutoParry.LastParry < AutoParry.ParryCooldown then
+        return false
+    end
+    
+    if math.random() < HumanReaction.MissChance then
+        return false
+    end
+    
+    AutoParry.LastParry = currentTime
+    AutoParry.Stats.Attempts = AutoParry.Stats.Attempts + 1
+    
+    local parrySuccess = false
+    
+    -- Method 1: RemoteEvent
+    pcall(function()
+        local remotes = game:GetService("ReplicatedStorage"):GetDescendants()
+        for _, remote in ipairs(remotes) do
+            if remote:IsA("RemoteEvent") and (
+                string.find(remote.Name:lower(), "parry") or 
+                string.find(remote.Name:lower(), "block") or
+                string.find(remote.Name:lower(), "guard") or
+                string.find(remote.Name:lower(), "counter")
+            ) then
+                remote:FireServer()
+                parrySuccess = true
+                break
+            end
+        end
+    end)
+    
+    -- Method 2: Virtual key press
+    if not parrySuccess then
+        pcall(function()
+            local vim = game:GetService("VirtualInputManager")
+            vim:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+            task.wait(0.05)
+            vim:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+            parrySuccess = true
+        end)
+    end
+    
+    -- Method 3: Mouse button
+    if not parrySuccess then
+        pcall(function()
+            local vim = game:GetService("VirtualInputManager")
+            vim:SendMouseButtonEvent(0, 0, 1, true, game, 0)
+            task.wait(0.05)
+            vim:SendMouseButtonEvent(0, 0, 1, false, game, 0)
+            parrySuccess = true
+        end)
+    end
+    
+    if parrySuccess then
+        AutoParry.Stats.Successful = AutoParry.Stats.Successful + 1
+    end
+    
+    return parrySuccess
+end
+
+-- Monitor animation (generic fallback)
+local function monitorAnimation(animTrack, player)
+    if not AutoParry.Enabled then return end
+    
+    AutoParry.Stats.Threats = AutoParry.Stats.Threats + 1
+    
+    local playerChar = LocalPlayer.Character
+    local targetChar = player.Character
+    
+    if not playerChar or not targetChar then return end
+    
+    local playerHRP = playerChar:FindFirstChild("HumanoidRootPart")
+    local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+    
+    if not playerHRP or not targetHRP then return end
+    
+    -- Generic parry logic with smart detection
+    task.spawn(function()
+        local distance = getDistance(playerHRP.Position, targetHRP.Position)
+        
+        -- Only parry if enemy is close and facing us
+        if distance < 30 and isTargetFacingPlayer(targetChar, playerChar) then
+            local delay = getHumanizedDelay(0.3)
+            task.wait(delay)
+            
+            if animTrack.IsPlaying then
+                executeParry()
+            end
+        end
+    end)
+end
+
+-- Monitor player
+local function monitorPlayer(player)
+    if player == LocalPlayer then return end
+    if AutoParry.MonitoredPlayers[player] then return end
+    
+    AutoParry.MonitoredPlayers[player] = true
+    
+    local function setupCharacter(character)
+        local humanoid = character:WaitForChild("Humanoid", 5)
+        if not humanoid then return end
+        
+        humanoid.AnimationPlayed:Connect(function(animTrack)
+            if not AutoParry.Enabled then return end
+            monitorAnimation(animTrack, player)
+        end)
+    end
+    
+    if player.Character then
+        setupCharacter(player.Character)
+    end
+    
+    player.CharacterAdded:Connect(setupCharacter)
+end
+
+-- Initialize monitoring
+for _, player in ipairs(Players:GetPlayers()) do
+    task.spawn(function()
+        monitorPlayer(player)
+    end)
+end
+
+Players.PlayerAdded:Connect(function(player)
+    task.spawn(function()
+        monitorPlayer(player)
+    end)
+end)
+
+-- GUI Creation
+getgenv().BlanketLoader.set_status("Creating GUI...")
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "BlanketGUI"
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local main = Instance.new("Frame")
+main.Name = "Main"
+main.Size = UDim2.new(0, 250, 0, 150)
+main.Position = UDim2.new(0.5, -125, 0.1, 0)
+main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+main.BorderSizePixel = 0
+main.Parent = gui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = main
+
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, 0, 0, 35)
+title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+title.BorderSizePixel = 0
+title.Text = "Blanket"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 18
+title.Font = Enum.Font.GothamBold
+title.Parent = main
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 10)
+titleCorner.Parent = title
+
+local autoParryLabel = Instance.new("TextLabel")
+autoParryLabel.Name = "AutoParryLabel"
+autoParryLabel.Size = UDim2.new(0, 120, 0, 30)
+autoParryLabel.Position = UDim2.new(0, 15, 0, 50)
+autoParryLabel.BackgroundTransparency = 1
+autoParryLabel.Text = "Auto Parry:"
+autoParryLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+autoParryLabel.TextSize = 14
+autoParryLabel.Font = Enum.Font.Gotham
+autoParryLabel.TextXAlignment = Enum.TextXAlignment.Left
+autoParryLabel.Parent = main
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Name = "ToggleButton"
+toggleButton.Size = UDim2.new(0, 80, 0, 30)
+toggleButton.Position = UDim2.new(0, 150, 0, 50)
+toggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+toggleButton.BorderSizePixel = 0
+toggleButton.Text = "OFF"
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.TextSize = 14
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.Parent = main
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(0, 6)
+toggleCorner.Parent = toggleButton
+
+local statsLabel = Instance.new("TextLabel")
+statsLabel.Name = "StatsLabel"
+statsLabel.Size = UDim2.new(1, -30, 0, 50)
+statsLabel.Position = UDim2.new(0, 15, 0, 90)
+statsLabel.BackgroundTransparency = 1
+statsLabel.Text = "Threats: 0 | Success: 0%"
+statsLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+statsLabel.TextSize = 12
+statsLabel.Font = Enum.Font.Gotham
+statsLabel.TextXAlignment = Enum.TextXAlignment.Left
+statsLabel.TextYAlignment = Enum.TextYAlignment.Top
+statsLabel.Parent = main
+
+-- Make GUI draggable
+local dragging, dragInput, dragStart, startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = main.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+title.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+-- Toggle button functionality
+toggleButton.MouseButton1Click:Connect(function()
+    AutoParry.Enabled = not AutoParry.Enabled
+    
+    if AutoParry.Enabled then
+        toggleButton.Text = "ON"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+    else
+        toggleButton.Text = "OFF"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    end
+end)
+
+-- Toggle keybind (K)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.K then
+        AutoParry.Enabled = not AutoParry.Enabled
+        
+        if AutoParry.Enabled then
+            toggleButton.Text = "ON"
+            toggleButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+        else
+            toggleButton.Text = "OFF"
+            toggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        end
+    elseif input.KeyCode == Enum.KeyCode.LeftControl or input.KeyCode == Enum.KeyCode.RightControl then
+        gui.Enabled = not gui.Enabled
+    end
+end)
+
+-- Update stats
+task.spawn(function()
+    while task.wait(1) do
+        local successRate = 0
+        if AutoParry.Stats.Attempts > 0 then
+            successRate = math.floor((AutoParry.Stats.Successful / AutoParry.Stats.Attempts) * 100)
+        end
+        
+        statsLabel.Text = string.format("Threats: %d | Success: %d%%\nAttempts: %d | Fatigue: %.1f%%", 
+            AutoParry.Stats.Threats,
+            successRate,
+            AutoParry.Stats.Attempts,
+            HumanReaction.Fatigue * 100
+        )
+    end
+end)
+
+-- Protect and parent GUI
+local ProtectGui = protectgui or (syn and syn.protect_gui) or function() end
+gui.Parent = game:GetService("CoreGui")
+ProtectGui(gui)
+
+-- Cleanup loader
+getgenv().BlanketLoader.set_status("Auto Parry Loaded!")
+task.wait(2)
+getgenv().BlanketLoader.destroy()
+
+warn("===========================================")
+warn("BLANKET SUITE - GHOUL RE")
+warn("Auto Parry: Press K to toggle")
+warn("GUI: Press CTRL to hide/show")
+warn("Generic animation detection active")
+warn("===========================================")
