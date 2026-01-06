@@ -101,13 +101,13 @@ local AutoParry = {
 
 -- Humanized reaction system
 local HumanReaction = {
-    BaseReactionTime = 0.15, -- Base human reaction time
-    Variance = 0.08, -- Reaction time variance
-    Fatigue = 0, -- Increases over time
+    BaseReactionTime = 0.15,
+    Variance = 0.08,
+    Fatigue = 0,
     FatigueRate = 0.001,
     FatigueDecay = 0.0005,
     LastReactionTime = 0,
-    MissChance = 0.02 -- 2% chance to miss (human error)
+    MissChance = 0.02
 }
 
 -- Get humanized delay
@@ -116,7 +116,6 @@ local function getHumanizedDelay(baseDelay)
     local fatigueFactor = 1 + HumanReaction.Fatigue
     local finalDelay = baseDelay + (reactionTime * fatigueFactor)
     
-    -- Add occasional longer delays (distraction simulation)
     if math.random() < 0.05 then
         finalDelay = finalDelay + math.random() * 0.2
     end
@@ -176,7 +175,6 @@ local function executeParry()
         return false
     end
     
-    -- Human error simulation
     if math.random() < HumanReaction.MissChance then
         return false
     end
@@ -248,16 +246,13 @@ local function monitorAnimation(animTrack, player, animId)
     
     if not playerHRP or not targetHRP then return end
     
-    -- Use animation data if available, otherwise use generic parry
     if animData then
-        -- Distance check
         if animData.DistanceCheck then
             local distance = getDistance(playerHRP.Position, targetHRP.Position)
             local maxDistance = animData.Distance or 30
             if distance > maxDistance then return end
         end
         
-        -- Facing checks
         if animData.PlayerFacing and not isPlayerFacingTarget(playerChar, targetChar) then
             return
         end
@@ -266,7 +261,6 @@ local function monitorAnimation(animTrack, player, animId)
             return
         end
         
-        -- Execute parry with humanized delay
         task.spawn(function()
             local baseDelay = animData.Delay[1] + (animData.Delay[2] - animData.Delay[1]) / 2
             local delay = getHumanizedDelay(baseDelay)
@@ -278,7 +272,6 @@ local function monitorAnimation(animTrack, player, animId)
             end
         end)
     else
-        -- Generic fallback for unknown animations
         task.spawn(function()
             local distance = getDistance(playerHRP.Position, targetHRP.Position)
             if distance < 35 then
@@ -303,7 +296,6 @@ local function monitorPlayer(player)
         local humanoid = character:WaitForChild("Humanoid", 5)
         if not humanoid then return end
         
-        -- Monitor AnimationPlayed event
         humanoid.AnimationPlayed:Connect(function(animTrack)
             if not AutoParry.Enabled then return end
             
