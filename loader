@@ -1,4 +1,4 @@
--- BLANKET SUITE MAIN LOADER
+- BLANKET SUITE MAIN LOADER
 -- Usage: loadstring(game:HttpGet("https://raw.githubusercontent.com/YOUR_USERNAME/blanket-suite/main/loader"))()
 
 local loader = Instance.new("ScreenGui")
@@ -102,10 +102,14 @@ task.delay(30, function()
     end)
 end)
 
+-- IMPORTANT: Replace YOUR_USERNAME with your GitHub username before uploading!
+local GITHUB_USERNAME = "YOUR_USERNAME"
+local REPO_NAME = "blanket-suite"
+
 -- Game-specific script URLs
 local scripts = {
-    [11641576792] = "https://raw.githubusercontent.com/YOUR_USERNAME/blanket-suite/main/games/demonhunter",
-    [72368345999613] = "https://raw.githubusercontent.com/YOUR_USERNAME/blanket-suite/main/games/ghoulre",
+    [11641576792] = string.format("https://raw.githubusercontent.com/%s/%s/main/games/demonhunter", GITHUB_USERNAME, REPO_NAME),
+    [72368345999613] = string.format("https://raw.githubusercontent.com/%s/%s/main/games/ghoulre", GITHUB_USERNAME, REPO_NAME),
 }
 
 local GameId = game.GameId
@@ -114,38 +118,31 @@ BlanketLoader.set_status("Detecting game...")
 
 -- Try to load game-specific script, fallback to generic if not found
 local scriptUrl = scripts[GameId]
+if not scriptUrl then
+    scriptUrl = string.format("https://raw.githubusercontent.com/%s/%s/main/games/ghoulre", GITHUB_USERNAME, REPO_NAME)
+end
 
-if scriptUrl then
-    BlanketLoader.set_status("Loading script...")
-    local success, script = pcall(function()
-        return game:HttpGet(scriptUrl)
+BlanketLoader.set_status("Loading script...")
+local success, script = pcall(function()
+    return game:HttpGet(scriptUrl)
+end)
+
+if success and script and #script > 0 then
+    BlanketLoader.set_status("Executing...")
+    local loadSuccess, err = pcall(function()
+        loadstring(script)()
     end)
     
-    if success and script then
-        BlanketLoader.set_status("Executing...")
-        local loadSuccess, err = pcall(function()
-            loadstring(script)()
-        end)
-        
-        if not loadSuccess then
-            BlanketLoader.set_status("Error: " .. tostring(err))
-            warn("Blanket Suite Error: " .. tostring(err))
-        end
-    else
-        BlanketLoader.set_status("Failed to fetch script")
-        warn("Blanket Suite: Failed to load game script")
+    if not loadSuccess then
+        BlanketLoader.set_status("Error: " .. tostring(err))
+        warn("Blanket Suite Error: " .. tostring(err))
+        task.wait(3)
+        BlanketLoader.destroy()
     end
 else
-    -- Load generic script for unsupported games
-    BlanketLoader.set_status("Loading generic...")
-    local success, script = pcall(function()
-        return game:HttpGet("https://raw.githubusercontent.com/YOUR_USERNAME/blanket-suite/main/games/ghoulre")
-    end)
-    
-    if success and script then
-        BlanketLoader.set_status("Executing...")
-        pcall(function()
-            loadstring(script)()
-        end)
-    end
+    BlanketLoader.set_status("Failed to load")
+    warn("Blanket Suite: Failed to fetch script from GitHub")
+    warn("Make sure YOUR_USERNAME is replaced with your actual GitHub username")
+    task.wait(3)
+    BlanketLoader.destroy()
 end
