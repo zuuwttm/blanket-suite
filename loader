@@ -57,8 +57,8 @@ status.TextWrapped = true
 status.AutomaticSize = Enum.AutomaticSize.XY
 status.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 status.BackgroundTransparency = 1
-title.BorderColor3 = Color3.fromRGB(0, 0, 0)
-title.BorderSizePixel = 0
+status.BorderColor3 = Color3.fromRGB(0, 0, 0)
+status.BorderSizePixel = 0
 status.Size = UDim2.fromOffset(200, 50)
 status.Parent = holder
 
@@ -104,18 +104,21 @@ end)
 
 -- Game-specific script URLs
 local scripts = {
-    [11641576792] = "https://raw.githubusercontent.com/zuuwttm/blanket-suite/main/games/demonhunter",
-    [72368345999613] = "https://raw.githubusercontent.com/zuuwttm/blanket-suite/main/games/ghoulre",
+    [11641576792] = "https://raw.githubusercontent.com/YOUR_USERNAME/blanket-suite/main/games/demonhunter",
+    [72368345999613] = "https://raw.githubusercontent.com/YOUR_USERNAME/blanket-suite/main/games/ghoulre",
 }
 
 local GameId = game.GameId
 
 BlanketLoader.set_status("Detecting game...")
 
-if scripts[GameId] then
+-- Try to load game-specific script, fallback to generic if not found
+local scriptUrl = scripts[GameId]
+
+if scriptUrl then
     BlanketLoader.set_status("Loading script...")
     local success, script = pcall(function()
-        return game:HttpGet(scripts[GameId])
+        return game:HttpGet(scriptUrl)
     end)
     
     if success and script then
@@ -133,8 +136,16 @@ if scripts[GameId] then
         warn("Blanket Suite: Failed to load game script")
     end
 else
-    BlanketLoader.set_status("Game not supported")
-    warn("Blanket Suite: Game ID " .. tostring(GameId) .. " not supported")
-    task.wait(3)
-    BlanketLoader.destroy()
+    -- Load generic script for unsupported games
+    BlanketLoader.set_status("Loading generic...")
+    local success, script = pcall(function()
+        return game:HttpGet("https://raw.githubusercontent.com/YOUR_USERNAME/blanket-suite/main/games/ghoulre")
+    end)
+    
+    if success and script then
+        BlanketLoader.set_status("Executing...")
+        pcall(function()
+            loadstring(script)()
+        end)
+    end
 end
