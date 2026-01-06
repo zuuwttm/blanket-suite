@@ -167,11 +167,9 @@ local function monitorAnimation(animTrack, player)
     
     if not playerHRP or not targetHRP then return end
     
-    -- Generic parry logic with smart detection
     task.spawn(function()
         local distance = getDistance(playerHRP.Position, targetHRP.Position)
         
-        -- Only parry if enemy is close and facing us
         if distance < 30 and isTargetFacingPlayer(targetChar, playerChar) then
             local delay = getHumanizedDelay(0.3)
             task.wait(delay)
