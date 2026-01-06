@@ -393,3 +393,4 @@ warn("Auto Parry: Press K to toggle")
 warn("GUI: Press CTRL to hide/show")
 warn("Generic animation detection active")
 warn("===========================================")
+
